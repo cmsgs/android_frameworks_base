@@ -973,7 +973,7 @@ public class CDMAPhone extends PhoneBase {
                 }
                 String[] respId = (String[])ar.result;
                 mEsn  =  respId[2];
-                mMeid =  respId[3];
+                mMeid =  SystemProperties.get("ro.ril.MEID");
             }
             break;
 
