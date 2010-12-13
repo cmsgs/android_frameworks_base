@@ -839,10 +839,14 @@ public class CDMAPhone extends PhoneBase {
             if (DBG) Log.d(LOG_TAG, "needsOtaServiceProvisioning: illegal cdmaMin='"
                                     + cdmaMin + "' assume provisioning needed.");
             needsProvisioning = true;
+	    if (SystemProperties.get("net.cdma.provision").equals("true")) // pppd_cdma flag
+		    SystemProperties.set("net.cdma.provision", "false"); // if true, start on init
         } else {
             needsProvisioning = (cdmaMin.equals(UNACTIVATED_MIN_VALUE)
                     || cdmaMin.substring(0,6).equals(UNACTIVATED_MIN2_VALUE))
                     || SystemProperties.getBoolean("test_cdma_setup", false);
+	    if (SystemProperties.get("net.cdma.provision").equals("false")) // pppd_cdma flag
+		    SystemProperties.set("net.cdma.provision", "true"); // if true, start on init
         }
         if (DBG) Log.d(LOG_TAG, "needsOtaServiceProvisioning: ret=" + needsProvisioning);
         return needsProvisioning;
