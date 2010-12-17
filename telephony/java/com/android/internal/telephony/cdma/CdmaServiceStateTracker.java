@@ -1175,11 +1175,11 @@ final class CdmaServiceStateTracker extends ServiceStateTracker {
      */
     private void
     queueNextSignalStrengthPoll() {
-        if (dontPollSignalStrength || (cm.getRadioState().isGsm())) {
+        /*if (dontPollSignalStrength || (cm.getRadioState().isGsm())) {
             // The radio is telling us about signal strength changes
             // we don't have to ask it
             return;
-        }
+        }*/ we are not getting unsol signal strength even in cdma, so we must poll
 
         Message msg;
 
