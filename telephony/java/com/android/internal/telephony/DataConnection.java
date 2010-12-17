@@ -421,7 +421,7 @@ public abstract class DataConnection extends HierarchicalStateMachine {
                 interfaceName = response[1];
                 if (response.length > 2) {
                     String prefix = "net.cdma.";
-                    ipAddress = SystemProperties.get(prefix + "local-ip"
+                    ipAddress = SystemProperties.get(prefix + "local-ip");
                     gatewayAddress = SystemProperties.get(prefix + "remote-ip");
                     dnsServers[0] = SystemProperties.get(prefix + "dns1");
                     dnsServers[1] = SystemProperties.get(prefix + "dns2");
