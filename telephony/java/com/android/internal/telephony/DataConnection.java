@@ -420,9 +420,9 @@ public abstract class DataConnection extends HierarchicalStateMachine {
                 cid = Integer.parseInt(response[0]);
                 interfaceName = response[1];
                 if (response.length > 2) {
-                    ipAddress = response[2];
-                    String prefix = "net." + interfaceName + ".";
-                    gatewayAddress = SystemProperties.get(prefix + "gw");
+                    String prefix = "net.cdma.";
+                    ipAddress = SystemProperties.get(prefix + "local-ip"
+                    gatewayAddress = SystemProperties.get(prefix + "remote-ip");
                     dnsServers[0] = SystemProperties.get(prefix + "dns1");
                     dnsServers[1] = SystemProperties.get(prefix + "dns2");
                     if (DBG) {
@@ -443,6 +443,7 @@ public abstract class DataConnection extends HierarchicalStateMachine {
                 result = SetupResult.ERR_Other;
             }
         }
+	if (result == SetupResult.SUCCESS) SystemProperties.set("net.cdma.data_ready", "true");
 
         if (DBG) log("DataConnection setup result='" + result + "' on cid=" + cid);
         return result;
