@@ -1179,7 +1179,7 @@ final class CdmaServiceStateTracker extends ServiceStateTracker {
             // The radio is telling us about signal strength changes
             // we don't have to ask it
             return;
-        }*/ we are not getting unsol signal strength even in cdma, so we must poll
+         we are not getting unsol signal strength even in cdma, so we must poll }*/ 
 
         Message msg;
 
