@@ -395,7 +395,7 @@ final class CdmaServiceStateTracker extends ServiceStateTracker {
             }
 
             // Release any temporary cell lock, which could have been
-            // acquired to allow a single-shot location update.
+            // aquired to allow a single-shot location update.
             disableSingleLocationUpdate();
             break;
 
@@ -410,7 +410,7 @@ final class CdmaServiceStateTracker extends ServiceStateTracker {
 
             if (ar.exception == null) {
                 String cdmaSubscription[] = (String[])ar.result;
-                if (cdmaSubscription != null && cdmaSubscription.length >= 5) {
+                if (cdmaSubscription != null && cdmaSubscription.length >= 4) {
                     mMdn = cdmaSubscription[0];
                     if (cdmaSubscription[1] != null) {
                         String[] sid = cdmaSubscription[1].split(",");
@@ -438,7 +438,8 @@ final class CdmaServiceStateTracker extends ServiceStateTracker {
                     }
                     Log.d(LOG_TAG,"GET_CDMA_SUBSCRIPTION NID=" + cdmaSubscription[2] );
                     mMin = cdmaSubscription[3];
-                    mPrlVersion = cdmaSubscription[4];
+                    String[] prl = (SystemProperties.get("ril.prl_ver_1").split(":"));
+                    mPrlVersion = prl[1];
                     Log.d(LOG_TAG,"GET_CDMA_SUBSCRIPTION MDN=" + mMdn);
                     //Notify apps subscription info is ready
                     if (cdmaForSubscriptionInfoReadyRegistrants != null) {
@@ -1176,11 +1177,11 @@ final class CdmaServiceStateTracker extends ServiceStateTracker {
      */
     private void
     queueNextSignalStrengthPoll() {
-        if (dontPollSignalStrength || (cm.getRadioState().isGsm())) {
+        /*if (dontPollSignalStrength || (cm.getRadioState().isGsm())) {
             // The radio is telling us about signal strength changes
             // we don't have to ask it
             return;
-        }
+         we are not getting unsol signal strength even in cdma, so we must poll }*/ 
 
         Message msg;
 
