@@ -1368,8 +1368,19 @@ public final class RIL extends BaseCommands implements CommandsInterface {
         RILRequest rr
                 = RILRequest.obtain(RIL_REQUEST_RADIO_POWER, result);
 
-        rr.mp.writeInt(1);
-        rr.mp.writeInt(on ? 1 : 0);
+        //samsung crap for airplane mode
+        if (on)
+ 	{
+ 	        rr.mp.writeInt(1);
+ 	        rr.mp.writeInt(1);
+ 	} else {
+ 	        rr.mp.writeInt(2);
+	        rr.mp.writeInt(0);
+ 		rr.mp.writeInt(0);
+ 	}
+
+        //rr.mp.writeInt(1);
+        //rr.mp.writeInt(on ? 1 : 0);
 
         if (RILJ_LOGD) riljLog(rr.serialString() + "> " + requestToString(rr.mRequest));
 
@@ -2241,11 +2252,31 @@ public final class RIL extends BaseCommands implements CommandsInterface {
                 return;
             }
         }
-
+	
+	
         if (error != 0) {
-            rr.onError(error, ret);
-            rr.release();
-            return;
+	    if(!(error == -1 && rr.mRequest == RIL_REQUEST_SEND_SMS)) //ugly fix for Samsung messing up SMS_SEND request fail in binary RIL
+	    {
+                rr.onError(error, ret);
+                rr.release();
+                return;
+            }
+            else
+            {
+		try 
+                {
+                    ret =  responseSMS(p);
+                } catch (Throwable tr) {
+                        Log.w(LOG_TAG, rr.serialString() + "< "
+                        + requestToString(rr.mRequest)
+                        + " exception, Processing Samsung SMS fix ", tr);
+
+			rr.onError(error, ret);
+                        rr.release();
+                        return;
+
+                }
+	    }
         }
 
         if (RILJ_LOGD) riljLog(rr.serialString() + "< " + requestToString(rr.mRequest)
@@ -2364,6 +2395,17 @@ public final class RIL extends BaseCommands implements CommandsInterface {
             case RIL_UNSOL_OEM_HOOK_RAW: ret = responseRaw(p); break;
             case RIL_UNSOL_RINGBACK_TONE: ret = responseInts(p); break;
             case RIL_UNSOL_RESEND_INCALL_MUTE: ret = responseVoid(p); break;
+            case RIL_UNSOL_HSDPA_STATE_CHANGED: ret = responseVoid(p); break;
+            
+
+            //fixing anoying Exceptions caused by the new Samsung states
+            //FIXME figure out what the states mean an what data is in the parcel
+
+            case RIL_UNSOL_O2_HOME_ZONE_INFO: ret = responseVoid(p); break;
+            case RIL_UNSOL_SAMSUNG_UNKNOWN_MAGIC_REQUEST: ret = responseVoid(p); break;
+            case RIL_UNSOL_STK_SEND_SMS_RESULT: ret = responseVoid(p); break;
+            case RIL_UNSOL_DEVICE_READY_NOTI: ret = responseVoid(p); break;
+            case RIL_UNSOL_SAMSUNG_UNKNOWN_MAGIC_REQUEST_2: ret = responseVoid(p); break;
 
             default:
                 throw new RuntimeException("Unrecognized unsol response: " + response);
@@ -2388,6 +2430,13 @@ public final class RIL extends BaseCommands implements CommandsInterface {
                 mCallStateRegistrants
                     .notifyRegistrants(new AsyncResult(null, null, null));
             break;
+            case RIL_UNSOL_HSDPA_STATE_CHANGED:
+                if (RILJ_LOGD) unsljLog(response);
+
+                mNetworkStateRegistrants
+                    .notifyRegistrants(new AsyncResult(null, null, null));
+            break;
+
             case RIL_UNSOL_RESPONSE_NETWORK_STATE_CHANGED:
                 if (RILJ_LOGD) unsljLog(response);
 
@@ -2681,6 +2730,16 @@ public final class RIL extends BaseCommands implements CommandsInterface {
         for (int i = 0 ; i < numInts ; i++) {
             response[i] = p.readInt();
         }
+ /* Matching Samsung signal strength to asu.
+     Method taken from Samsungs cdma/gsmSignalStateTracker */
+  response[0] = response[0] & 0xFF; //gsmDbm
+  response[1] = -1; //gsmEcio  
+  response[2] = (response[2] < 0)?-120:-response[2]; //cdmaDbm
+  response[3] = (response[3] < 0)?-160:-response[3]; //cdmaEcio
+  response[4] = (response[4] < 0)?-120:-response[4]; //evdoRssi
+  response[5] = (response[5] < 0)?-1:-response[5]; //evdoEcio
+  if(response[6] < 0 || response[6] > 8)
+    response[6] = -1;
 
         return response;
     }
@@ -2846,27 +2905,85 @@ public final class RIL extends BaseCommands implements CommandsInterface {
         ArrayList<DriverCall> response;
         DriverCall dc;
 
+	int dataAvail = p.dataAvail();
+	int pos = p.dataPosition();
+	int size = p.dataSize();
+	
+	Log.d(LOG_TAG, "Parcel size = " + size);
+	Log.d(LOG_TAG, "Parcel pos = " + pos);
+	Log.d(LOG_TAG, "Parcel dataAvail = " + dataAvail);
+
+
+
+        //Samsung fucked up here
+
+/*
+
+// Native package assembly in the aosp rild
+
+p.writeInt32(p_cur->state);
+        p.writeInt32(p_cur->index);
+        p.writeInt32(p_cur->toa);
+        p.writeInt32(p_cur->isMpty);
+        p.writeInt32(p_cur->isMT);
+        p.writeInt32(p_cur->als);
+        p.writeInt32(p_cur->isVoice);
+        p.writeInt32(p_cur->isVoicePrivacy);
+        writeStringToParcel(p, p_cur->number);
+        p.writeInt32(p_cur->numberPresentation);
+        writeStringToParcel(p, p_cur->name);
+        p.writeInt32(p_cur->namePresentation);
+        Remove when partners upgrade to version 3
+        if ((s_callbacks.version < 3) || (p_cur->uusInfo == NULL || p_cur->uusInfo->uusData == NULL)) {
+            p.writeInt32(0);  UUS Information is absent 
+        } else {
+            RIL_UUS_Info *uusInfo = p_cur->uusInfo;
+            p.writeInt32(1);  UUS Information is present 
+            p.writeInt32(uusInfo->uusType);
+            p.writeInt3s2(uusInfo->uusDcs);
+            p.writeInt32(uusInfo->uusLength);
+            p.write(uusInfo->uusData, uusInfo->uusLength);
+        }
+
+*/
+
         num = p.readInt();
+
+	Log.d(LOG_TAG, "num = " + num);
         response = new ArrayList<DriverCall>(num);
 
         for (int i = 0 ; i < num ; i++) {
             dc = new DriverCall();
 
             dc.state = DriverCall.stateFromCLCC(p.readInt());
+  	    Log.d(LOG_TAG, "state = " + dc.state);
             dc.index = p.readInt();
+	    Log.d(LOG_TAG, "index = " + dc.index);
             dc.TOA = p.readInt();
+	    Log.d(LOG_TAG, "state = " + dc.TOA);
             dc.isMpty = (0 != p.readInt());
+            Log.d(LOG_TAG, "isMpty = " + dc.isMpty);
             dc.isMT = (0 != p.readInt());
+            Log.d(LOG_TAG, "isMT = " + dc.isMT);
             dc.als = p.readInt();
+	    Log.d(LOG_TAG, "als = " + dc.als);
             voiceSettings = p.readInt();
             dc.isVoice = (0 == voiceSettings) ? false : true;
-            dc.isVoicePrivacy = (0 != p.readInt());
+            Log.d(LOG_TAG, "isVoice = " + dc.isVoice);
+            dc.isVoicePrivacy =  (0 != p.readInt()); 
+            voiceSettings = p.readInt(); //Some Samsung magic data for Videocalls
+	    Log.d(LOG_TAG, "Samsung magic = " + voiceSettings); //printing it to cosole for later investigation
             dc.number = p.readString();
+            Log.d(LOG_TAG, "number = " + dc.number);
             int np = p.readInt();
+            Log.d(LOG_TAG, "np = " + np);
             dc.numberPresentation = DriverCall.presentationFromCLIP(np);
             dc.name = p.readString();
+            Log.d(LOG_TAG, "name = " + dc.name);
             dc.namePresentation = p.readInt();
+	    Log.d(LOG_TAG, "namePresentation = " + dc.namePresentation);
             int uusInfoPresent = p.readInt();
+            Log.d(LOG_TAG, "uusInfoPresent = " + uusInfoPresent);
             if (uusInfoPresent == 1) {
                 dc.uusInfo = new UUSInfo();
                 dc.uusInfo.setType(p.readInt());
@@ -3065,6 +3182,17 @@ public final class RIL extends BaseCommands implements CommandsInterface {
         for (int i = 0 ; i < numInts ; i++) {
             response[i] = p.readInt();
         }
+
+	/* Matching Samsung signal strength to asu.
+	   Method taken from Samsungs cdma/gsmSignalStateTracker */
+	response[0] = response[0] & 0xFF; //gsmDbm
+	response[1] = -1; //gsmEcio	
+	response[2] = (response[2] < 0)?-120:-response[2]; //cdmaDbm
+	response[3] = (response[3] < 0)?-160:-response[3]; //cdmaEcio
+	response[4] = (response[4] < 0)?-120:-response[4]; //evdoRssi
+	response[5] = (response[5] < 0)?-1:-response[5]; //evdoEcio
+	if(response[6] < 0 || response[6] > 8)
+		response[6] = -1;
 
         return response;
     }
