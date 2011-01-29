@@ -239,18 +239,14 @@ public class MobileDataStateTracker extends NetworkStateTracker {
                                 break;
                             case CONNECTED:
                                 mInterfaceName = intent.getStringExtra(Phone.DATA_IFACE_NAME_KEY);
-				String prefix = "net." + mInterfaceName + ".";
-				mDefaultGatewayAddr = getIpFromString(SystemProperties.get(prefix + "gw"));
-
-				
                                 if (mInterfaceName == null) {
                                     Log.d(TAG, "CONNECTED event did not supply interface name.");
                                 }
                                 mDefaultGatewayAddr = intent.getIntExtra(Phone.DATA_GATEWAY_KEY, 0);
-				if (mDefaultGatewayAddr == -1) {
+                                if (mDefaultGatewayAddr == -1
+                                    || mDefaultGatewayAddr == 0) {
                                     Log.w(TAG, "CONNECTED event did not supply Gateway.");
                                 }
-
                                 setDetailedState(DetailedState.CONNECTED, reason, apnName);
                                 break;
                         }

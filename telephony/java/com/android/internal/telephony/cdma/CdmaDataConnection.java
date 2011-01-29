@@ -17,6 +17,7 @@
 package com.android.internal.telephony.cdma;
 
 import android.os.Message;
+import android.os.SystemProperties;
 import android.util.Log;
 
 import com.android.internal.telephony.DataConnection;
@@ -88,6 +89,16 @@ public class CdmaDataConnection extends DataConnection {
         phone.mCM.setupDataCall(Integer.toString(RILConstants.SETUP_DATA_TECH_CDMA),
                 Integer.toString(dataProfile), null, null,
                 null, Integer.toString(RILConstants.SETUP_DATA_AUTH_PAP_CHAP), msg);
+    }
+
+    @Override
+    protected void readSettings(String interfaceName) {
+        super.readSettings(interfaceName);
+        String prefix = "net.cdma." + interfaceName + ".";
+        ipAddress = SystemProperties.get(prefix + "local-ip");
+        gatewayAddress = SystemProperties.get(prefix + "remote-ip");
+        dnsServers[0] = SystemProperties.get(prefix + "dns1");
+        dnsServers[1] = SystemProperties.get(prefix + "dns2");
     }
 
     @Override
