@@ -383,6 +383,12 @@ public abstract class DataConnection extends HierarchicalStateMachine {
         dnsServers[0] = null;
         dnsServers[1] = null;
     }
+    
+    /**
+     * Read all settings from properties
+     */
+    protected void readSettings(String interfaceName) {
+    }
 
     /**
      * Process setup completion.
@@ -420,11 +426,8 @@ public abstract class DataConnection extends HierarchicalStateMachine {
                 cid = Integer.parseInt(response[0]);
                 interfaceName = response[1];
                 if (response.length > 2) {
-                    String prefix = "net.cdma.";
-                    ipAddress = SystemProperties.get(prefix + "local-ip");
-                    gatewayAddress = SystemProperties.get(prefix + "remote-ip");
-                    dnsServers[0] = SystemProperties.get(prefix + "dns1");
-                    dnsServers[1] = SystemProperties.get(prefix + "dns2");
+                    ipAddress = response[2]; // may be overriden by CDMA readSettings
+                    readSettings(interfaceName);
                     if (DBG) {
                         log("interface=" + interfaceName + " ipAddress=" + ipAddress
                             + " gateway=" + gatewayAddress + " DNS1=" + dnsServers[0]

@@ -17,6 +17,7 @@
 package com.android.internal.telephony.gsm;
 
 import android.os.Message;
+import android.os.SystemProperties;
 import android.util.Log;
 import android.util.Patterns;
 
@@ -114,6 +115,16 @@ public class GsmDataConnection extends DataConnection {
         super.clearSettings();
         apn = null;
     }
+
+    @Override
+    protected void readSettings(String interfaceName) {
+        super.readSettings(interfaceName);
+        String prefix = "net." + interfaceName + ".";
+        gatewayAddress = SystemProperties.get(prefix + "gw");
+        dnsServers[0] = SystemProperties.get(prefix + "dns1");
+        dnsServers[1] = SystemProperties.get(prefix + "dns2");
+    }
+
 
     @Override
     public String toString() {
