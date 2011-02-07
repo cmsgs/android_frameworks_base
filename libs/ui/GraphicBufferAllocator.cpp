@@ -85,7 +85,17 @@ status_t GraphicBufferAllocator::alloc(uint32_t w, uint32_t h, PixelFormat forma
     status_t err; 
     
     if (usage & GRALLOC_USAGE_HW_MASK) {
-        err = mAllocDev->alloc(mAllocDev, w, h, format, usage, handle, stride);
+        int u = usage;
+#ifdef BOARD_USES_FROYO_GRALLOC
+        // Froyo gralloc has different 2D flag
+#define  GRALLOC_USAGE_HW_2D_FROYO 0x00000C00
+        if (u & GRALLOC_USAGE_HW_2D)
+        {
+            u &= ~GRALLOC_USAGE_HW_2D;
+            //u |= GRALLOC_USAGE_HW_2D_FROYO;
+        }
+#endif
+        err = mAllocDev->alloc(mAllocDev, w, h, format, u, handle, stride);
     } else {
         err = sw_gralloc_handle_t::alloc(w, h, format, usage, handle, stride);
     }
